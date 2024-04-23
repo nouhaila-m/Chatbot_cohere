@@ -5,7 +5,7 @@ import nest_asyncio
 from llama_index.core import StorageContext, VectorStoreIndex, Settings, SimpleDirectoryReader
 from llama_index.legacy.llms.cohere import Cohere
 from llama_index.embeddings.cohere import CohereEmbedding
-from llama_index.legacy.vector_stores import PGVectorStore
+from llama_index.vector_stores.postgres import PGVectorStore
 from typing import Optional
 from llama_index.core import Document
 nest_asyncio.apply()
@@ -36,7 +36,7 @@ def read_file_to_doc(fileNames: [str]):
     return doc
 
 def create_storage_context(host: str = "localhost", port: str = "5432", username: str = "nouha",
-                           password: str = "nouha", db_name: str = None, table: str = None, embed_dim: int = 1024):
+                           password: str = "nouha", db_name: str ="rag_db", table: str ="embd_table", embed_dim: int = 1024):
     pgVectorStore = PGVectorStore.from_params(
         host=host,
         port=port,
@@ -50,7 +50,6 @@ def create_storage_context(host: str = "localhost", port: str = "5432", username
 
 def to_vector_store_index(documents: [Document], storageContext: Optional[str] = None):
     return VectorStoreIndex.from_documents(documents=documents, storage_context=storageContext)
-
 
 def initialize_session_storage():
     if "history" not in st.session_state:
@@ -72,6 +71,7 @@ def define_global_settings(setting: str, value: str):
 @st.cache_resource(show_spinner=False)
 def query_engine_from_doc(documents: [str]):
     # load_documents
+
     doc = read_file_to_doc(documents)
     # create embedding
         #embed_mod = HuggingFaceEmbedding("sentence-transformers/all-mpnet-base-v2")
@@ -83,12 +83,11 @@ def query_engine_from_doc(documents: [str]):
     define_global_settings("llm", cohere_llm)
     define_global_settings("embed_model", cohere_embed)
     # create storage context
-    pgvectore_store_context = create_storage_context(db_name="rag_db", table="test_table2", embed_dim=1024)
+    pgvectore_store_context = create_storage_context(db_name="rag_db", table="test_table2", embed_dim=1024 )
     # document to vector store
     vect_stor = to_vector_store_index([doc], pgvectore_store_context)
     # query engine
     return vect_stor.as_query_engine()
-
 
 def save_msg(role: str, message: str):
     st.session_state.history.append({"role": role, "query": message})

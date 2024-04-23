@@ -20,4 +20,5 @@ try:
                     st.write(response)
             save_msg("assistant", response)
 except:
+    st.error(NameError)
     st.error("Please choose your file!", icon="😤")
