@@ -2,29 +2,22 @@ import os
 from pathlib import Path
 import streamlit as st
 import nest_asyncio
-
-import llama_index.embeddings.cohere
-from langchain_community.embeddings import CohereEmbeddings
-from llama_index.core import StorageContext, VectorStoreIndex, Settings
-from llama_index.legacy.llms import Cohere
+from llama_index.core import StorageContext, VectorStoreIndex, Settings, SimpleDirectoryReader
+from llama_index.legacy.llms.cohere import Cohere
+from llama_index.embeddings.cohere import CohereEmbedding
 from llama_index.legacy.vector_stores import PGVectorStore
 from typing import Optional
-
+from llama_index.core import Document
 nest_asyncio.apply()
-
-from langchain_core.documents import Document
-from langchain_postgres.vectorstores import PGVector
-from llama_index.legacy import SimpleDirectoryReader
-
 os.environ["COHERE_API_KEY"] = "2DNlMKIjntYyI9fflsvWJ9Nqn0cfZSyZUV92J2o6"
 
 def connection():
     # See docker command above to launch a postgres instance with pgvector enabled.
     connection = "postgresql+psycopg://nouha:nouha@localhost:5432/rag_db"  # Uses psycopg3!
     collection_name = "my_docs"
-    embeddings = CohereEmbeddings()
+    embeddings = CohereEmbedding()
 
-    vectorstore = PGVector(
+    vectorstore = PGVectorStore(
         embeddings=embeddings,
         collection_name=collection_name,
         connection=connection,
@@ -81,14 +74,16 @@ def query_engine_from_doc(documents: [str]):
     # load_documents
     doc = read_file_to_doc(documents)
     # create embedding
-    embed_mod = CohereEmbeddings(model = "embed-multilingual-v2.0")
+        #embed_mod = HuggingFaceEmbedding("sentence-transformers/all-mpnet-base-v2")
+    cohere_embed=CohereEmbedding(cohere_api_key="2DNlMKIjntYyI9fflsvWJ9Nqn0cfZSyZUV92J2o6")
     # create our llm mistral from ollama
-    llm = Cohere(model="command")
+     #   llm = Ollama(model="mistral", base_url="https://b043-104-196-20-41.ngrok-free.app")
+    cohere_llm=Cohere(api_key="2DNlMKIjntYyI9fflsvWJ9Nqn0cfZSyZUV92J2o6")
     # set Settings
-    define_global_settings("llm", llm)
-    define_global_settings("embed_model", embed_mod)
+    define_global_settings("llm", cohere_llm)
+    define_global_settings("embed_model", cohere_embed)
     # create storage context
-    pgvectore_store_context = create_storage_context(db_name="rag_db", table="test_table", embed_dim=768)
+    pgvectore_store_context = create_storage_context(db_name="rag_db", table="test_table2", embed_dim=1024)
     # document to vector store
     vect_stor = to_vector_store_index([doc], pgvectore_store_context)
     # query engine
